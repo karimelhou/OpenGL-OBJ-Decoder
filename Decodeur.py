@@ -12,7 +12,7 @@ class Vertex:
 
 class Face:
     def __init__(self, vertices):
-        self.vertices = vertices  # List of vertex indices
+        self.vertices = vertices  
 
 class Object3D:
     def __init__(self, name):
@@ -22,18 +22,18 @@ class Object3D:
 
 def decode_obj_file(filename):
     objects = {}
-    global_vertices = []  # List to store all vertices
+    global_vertices = []  
     current_object = None
 
     try:
         with open(filename, 'r') as file:
             for line in file:
-                if line.startswith('g '):  # Start a new object
+                if line.startswith('g '):  
                     if current_object:
                         objects[current_object.name] = current_object
                     object_name = line.split()[1].strip()
                     current_object = Object3D(object_name)
-                elif line.startswith('v '):  # Parse vertex and add to global list
+                elif line.startswith('v '):  
                     parts = line.split()
                     vertex = Vertex(float(parts[1]), float(parts[2]), float(parts[3]))
                     global_vertices.append(vertex)
@@ -41,7 +41,7 @@ def decode_obj_file(filename):
                     vertex_indices = [int(part.split('/')[0]) for part in line.split()[1:]]
                     face = Face(vertex_indices)
                     current_object.faces.append(face)
-        if current_object:  # Add the last object
+        if current_object:  
             objects[current_object.name] = current_object
     except FileNotFoundError:
         print(f"File not found: {filename}")
@@ -72,7 +72,7 @@ def display_object(obj, global_vertices, display_mode):
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
-        render(obj, global_vertices, display_mode)  # Pass global_vertices to render
+        render(obj, global_vertices, display_mode)  
         glfw.swap_buffers(window)
 
     glfw.terminate()
@@ -126,7 +126,7 @@ def render_solid(obj, global_vertices):
     for face in obj.faces:
         for idx in face.vertices:
             if 0 <= idx - 1 < len(global_vertices):
-                vertex = global_vertices[idx - 1]  # Use global_vertices
+                vertex = global_vertices[idx - 1]  
                 glVertex3f(vertex.x, vertex.y, vertex.z)
             else:
                 print(f"Skipping invalid vertex index: {idx}")
@@ -139,14 +139,13 @@ def framebuffer_size_callback(window, width, height):
 
 def save_object_to_file(obj, global_vertices, filename):
     with open(filename, 'w') as file:
-        # Write object name
         file.write(f'o {obj.name}\n')
+        file.write(f'g {obj.name}\n')
 
-        # Track which vertices have been written
         written_vertices = {}
         vertex_index = 1
 
-        # Write vertices and faces
+       
         for face in obj.faces:
             for idx in face.vertices:
                 if idx not in written_vertices:
@@ -155,30 +154,63 @@ def save_object_to_file(obj, global_vertices, filename):
                     written_vertices[idx] = vertex_index
                     vertex_index += 1
 
-            # Write face with updated vertex indices
             face_indices = [written_vertices[idx] for idx in face.vertices]
             file.write('f ' + ' '.join(str(i) for i in face_indices) + '\n')
 
-def main():
-    obj_filename = '/Users/karim/Documents/MASTER /MASTER M2/ML/Devoir/Objets3D.obj'
-    objects, global_vertices = decode_obj_file(obj_filename)
-    list_objects(objects)
 
-    object_name = input("Enter the name of the object to display: ")
-    if object_name in objects:
-        display_mode = input("Enter display mode ('PointCloud' for Nuage de points, 'Wireframe' for Filiforme, 'Solid'): ")
-        if display_mode in ['PointCloud', 'Wireframe', 'Solid']:
+def main():
+    action = input("Choose action - 1 to display an existing object, 2 to open a saved file: ")
+
+    if action == '1':
+        obj_filename = '/Users/karim/Documents/MASTER /MASTER M2/ML/Devoir/Objets3D.obj'
+        objects, global_vertices = decode_obj_file(obj_filename)
+        list_objects(objects)
+
+        object_name = input("Enter the name of the object to display: ")
+        if object_name in objects:
+            display_mode = input("Enter display mode (1 for PointCloud, 2 for Wireframe, 3 for Solid): ")
+            if display_mode == '1':
+                display_mode = 'PointCloud'
+            elif display_mode == '2':
+                display_mode = 'Wireframe'
+            elif display_mode == '3':
+                display_mode = 'Solid'
+            else:
+                print("Invalid display mode.")
+                return
+
             display_object(objects[object_name], global_vertices, display_mode)
         else:
-            print("Invalid display mode.")
-    else:
-        print(f"Object '{object_name}' not found.")
-    
-    # Ask for a filename to save the object
-    save_filename = input("Enter filename to save the object (e.g., 'saved_object.obj'): ")
-    if save_filename:
-        save_object_to_file(objects[object_name], global_vertices, save_filename)
-        print(f"Object '{object_name}' saved to {save_filename}")
+            print(f"Object '{object_name}' not found.")
+
+        save_filename = input("Enter filename to save the object (e.g., 'saved_object.obj'): ")
+        if save_filename:
+            save_object_to_file(objects[object_name], global_vertices, save_filename)
+            print(f"Object '{object_name}' saved to {save_filename}")
+
+    elif action == '2':
+        saved_filename = input("Enter the filename of the saved object: ")
+        try:
+            objects, global_vertices = decode_obj_file(saved_filename)
+            list_objects(objects)
+            object_name = input("Enter the name of the object to display: ")
+            if object_name in objects:
+                display_mode = input("Enter display mode (1 for PointCloud, 2 for Wireframe, 3 for Solid): ")
+                if display_mode == '1':
+                    display_mode = 'PointCloud'
+                elif display_mode == '2':
+                    display_mode = 'Wireframe'
+                elif display_mode == '3':
+                    display_mode = 'Solid'
+                else:
+                    print("Invalid display mode.")
+                    return
+
+                display_object(objects[object_name], global_vertices, display_mode)
+            else:
+                print(f"Object '{object_name}' not found.")
+        except Exception as e:
+            print(f"Error opening file: {e}")
 
 if __name__ == '__main__':
     main()
